@@ -14,4 +14,19 @@ https://github.com/CoryCline/ICM20948
 
 https://invensense.tdk.com/wp-content/uploads/2016/06/DS-000189-ICM-20948-v1.3.pdf
 
+https://linux-sunxi.org/I2Cdev
+
+
+# Installation
+
+sudo apt-get install -y libi2c-dev
+
+# Testing
+
+```
+ls /dev/ | grep "i2c"
+   i2c-1
+i2cdetect -l
+i2c-1    unknown   bcm2835 (i2c@7e804000)          N/A
+```
 

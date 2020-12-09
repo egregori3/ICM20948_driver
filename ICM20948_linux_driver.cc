@@ -8,9 +8,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "ICM20948_Linux_Driver"
+#include "ICM20948_linux_driver.h"
 
 
-
+ICM20948LinuxDriver::ICM20948LinuxDriver(char *PathFilename)
+{
+    
+}
 
 

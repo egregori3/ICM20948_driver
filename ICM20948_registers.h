@@ -1,3 +1,5 @@
+#ifndef ICM20948_REGISTERS
+#define ICM20948_REGISTERS
 // ICM20948 registers
 //
 // I (Eric Gregori) copied these register definitions from Sparkfun.
@@ -237,30 +239,6 @@ typedef struct
                         LOW_POWER_WRITES,   \
                         SET_MODE_WRITES     }
 
-#define    ID_READ_BYTE     AGB0_REG_WHO_AM_I
-#define    AXH_READ_BYTE    AGB0_REG_ACCEL_XOUT_H
-#define    AXL_READ_BYTE    AGB0_REG_ACCEL_XOUT_L
-#define    AYH_READ_BYTE    AGB0_REG_ACCEL_YOUT_H
-#define    AYL_READ_BYTE    AGB0_REG_ACCEL_YOUT_L
-#define    AZH_READ_BYTE    AGB0_REG_ACCEL_ZOUT_H
-#define    AZL_READ_BYTE    AGB0_REG_ACCEL_ZOUT_L
-#define    GXH_READ_BYTE    AGB0_REG_GYRO_XOUT_H
-#define    GXL_READ_BYTE    AGB0_REG_GYRO_XOUT_L
-#define    GYH_READ_BYTE    AGB0_REG_GYRO_YOUT_H
-#define    GYL_READ_BYTE    AGB0_REG_GYRO_YOUT_L
-#define    GZH_READ_BYTE    AGB0_REG_GYRO_ZOUT_H
-#define    GZL_READ_BYTE    AGB0_REG_GYRO_ZOUT_L
-#define    TH_READ_BYTE     AGB0_REG_TEMP_OUT_H
-#define    TL_READ_BYTE     AGB0_REG_TEMP_OUT_L
-#define    MSTAT1_READ_BYTE AGB0_REG_EXT_SLV_SENS_DATA_00
-#define    MXL_READ_BYTE    AGB0_REG_EXT_SLV_SENS_DATA_01
-#define    MXH_READ_BYTE    AGB0_REG_EXT_SLV_SENS_DATA_02
-#define    MYL_READ_BYTE    AGB0_REG_EXT_SLV_SENS_DATA_03
-#define    MYH_READ_BYTE    AGB0_REG_EXT_SLV_SENS_DATA_04
-#define    MZL_READ_BYTE    AGB0_REG_EXT_SLV_SENS_DATA_05
-#define    MZH_READ_BYTE    AGB0_REG_EXT_SLV_SENS_DATA_06
-#define    MSTAT2_READ_BYTE AGB0_REG_EXT_SLV_SENS_DATA_08
-
 
 typedef struct
 {
@@ -277,3 +255,34 @@ typedef struct
     uint16_t    temp;
     uint16_t    magstat;
 }   DATA;
+
+
+// I am not a fan of macros but this allowed my to contain all the IC specific
+// details in a single file.
+#define GETDATA(x)                                                              \
+    x.id = ReadRegister(AGB0_REG_WHO_AM_I);                                     \
+    x.ax = (((uint16_t)ReadRegister(AGB0_REG_ACCEL_XOUT_H)<<8)+                 \
+            (ReadRegister(AGB0_REG_ACCEL_XOUT_L)));                             \
+    x.ay = (((uint16_t)ReadRegister(AGB0_REG_ACCEL_YOUT_H)<<8)+                 \
+            (ReadRegister(AGB0_REG_ACCEL_YOUT_L)));                             \
+    x.az = (((uint16_t)ReadRegister(AGB0_REG_ACCEL_ZOUT_H)<<8)+                 \
+            (ReadRegister(AGB0_REG_ACCEL_ZOUT_L)));                             \
+    x.gx = (((uint16_t)ReadRegister(AGB0_REG_GYRO_XOUT_H)<<8)+                  \
+            (ReadRegister(AGB0_REG_GYRO_XOUT_L)));                              \
+    x.gy = (((uint16_t)ReadRegister(AGB0_REG_GYRO_YOUT_H)<<8)+                  \
+            (ReadRegister(AGB0_REG_GYRO_YOUT_L)));                              \
+    x.gz = (((uint16_t)ReadRegister(AGB0_REG_GYRO_ZOUT_H)<<8)+                  \
+            (ReadRegister(AGB0_REG_GYRO_ZOUT_L)));                              \
+    x.temp = (((uint16_t)ReadRegister(AGB0_REG_TEMP_OUT_H)<<8)+                 \
+            (ReadRegister(AGB0_REG_TEMP_OUT_L)));                               \
+    x.mx = (((uint16_t)ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_02)<<8)+         \
+            (ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_01)));                     \
+    x.my = (((uint16_t)ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_04)<<8)+         \
+            (ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_03)));                     \
+    x.mz = (((uint16_t)ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_06)<<8)+         \
+            (ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_05)));                     \
+    x.magstat = (((uint16_t)ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_00)<<8)+    \
+                 (ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_08)));                \
+
+
+#endif

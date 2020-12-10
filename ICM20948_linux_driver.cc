@@ -1,4 +1,5 @@
 // ICM20948 IMU Userspace Linux Driver
+// g++ -std=c++11 ICM20948_linux_driver.cc -li2c
 // By Eric Gregori
 
 #include <errno.h>
@@ -6,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -15,17 +15,26 @@
 #include <unistd.h>
 #include <iostream>
 #include <vector>
+
+extern "C" {
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include <i2c/smbus.h>
+}
+
 #include "ICM20948_registers.h"
 #include "ICM20948_linux_driver.h"
 
-#define ONHARDWARE  0
+#define ONHARDWARE  1
 
 using namespace std;
 
 // Read a single register
-uint8_t ICM20948LinuxDriver::ReadRegister(uint8_t addr)
+uint8_t ICM20948LinuxDriver::ReadRegister(uint8_t paddr)
 {
     int data = 0;
+    uint8_t addr = paddr & 0x00FF;
+
 #if ONHARDWARE
     data = i2c_smbus_read_byte_data(fp, addr);
     if (data < 0)
@@ -33,7 +42,7 @@ uint8_t ICM20948LinuxDriver::ReadRegister(uint8_t addr)
         perror("I2C Read operation failed.");
     }
 #endif
-    printf("READ -> addr: %4x\n", addr);
+    printf("READ -> addr: %4x = %2x\n", addr, data);
     return (uint8_t)data;
 }
 
@@ -41,17 +50,18 @@ uint8_t ICM20948LinuxDriver::ReadRegister(uint8_t addr)
 int ICM20948LinuxDriver::WriteRegister(WRITE &data)
 {
     int ret_val = 0;
+    uint8_t addr = data.addr & 0x00FF;
+
 #if ONHARDWARE
     ret_val = i2c_smbus_write_byte_data(fp,
-                                        data.addr,
+                                        addr,
                                         data.data);
- 
     if (ret_val < 0)
     {
         perror("I2C Write Operation failed.");
     }
 #endif
-    printf("WRITE -> addr: %4x, data: %2x\n", data.addr, data.data);
+    printf("WRITE -> addr: %4x, data: %2x\n", addr, data.data);
     return ret_val;
 }
 
@@ -76,6 +86,7 @@ int ICM20948LinuxDriver::WriteRegisters(vector<WRITE> registers)
             {
                 case SLEEP:
                     printf("SLEEP -> %d\n", registers[i].data);
+                    usleep(registers[i].data*1000);
                     break;
             }
         }
@@ -85,16 +96,18 @@ int ICM20948LinuxDriver::WriteRegisters(vector<WRITE> registers)
 
 ICM20948LinuxDriver::ICM20948LinuxDriver(char *PathFilename, uint8_t i2c_add)
 {
+    int ret_val = 0;
+
     printf("Opening I2C Driver: %s\n", PathFilename);
 #if ONHARDWARE
-    fp = open(i2c_dev_node_path, O_RDWR);
+    fp = open(PathFilename, O_RDWR);
     if (fp < 0)
     {
         perror("Unable to open device node.");
     }
 
     // Set I2C_SLAVE address */
-    ret_val = ioctl(i2c_dev_node,I2C_SLAVE,i2c_add);
+    ret_val = ioctl(fp,I2C_SLAVE,i2c_add);
     if (ret_val < 0)
     {
         perror("Could not set I2C_SLAVE.");
@@ -123,7 +136,7 @@ int ICM20948LinuxDriver::ReadIMUData(void)
 
 int main(int argc, char **argv)
 {
-    ICM20948LinuxDriver driver(argv[1], 0x53);
+    ICM20948LinuxDriver driver(argv[1], 0x69);
 
     driver.ReadIMUData();
 }

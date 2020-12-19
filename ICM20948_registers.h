@@ -220,6 +220,7 @@ typedef struct
 // set full scale range for both accel and gryo (separate functions)
 // setFullScaleRangeAccel(gpm2)
 // setFullScaleRangeGyro(dps250)
+#define    BYPASS_GYRO_DLPF  {SET_BANK_2_WRITE, {AGB2_REG_GYRO_CONFIG_1, 0x00}}
 //
 // set low pass filter for both accel and gyro (separate functions)
 // setDLPFcfgAccel(acc_d473bw_n499bw)
@@ -257,9 +258,13 @@ i2cMasterConfigureSlave(0, MAG_AK09916_I2C_ADDR, AK09916_REG_ST1, 9, True, True,
 #define    INIT_CMD {   SW_RESET_WRITES,    \
                         {SLEEP_50MS_WRITE}, \
                         SLEEP_OFF_WRITES,   \
+                        {SLEEP_50MS_WRITE}, \
                         LOW_POWER_WRITES,   \
-                        SET_MODE_WRITES     }
-
+                        {SLEEP_50MS_WRITE}, \
+                        SET_MODE_WRITES,    \
+                        {SLEEP_50MS_WRITE}, \
+                        BYPASS_GYRO_DLPF,   \
+                        {SET_BANK_0_WRITE}} \
 
 typedef struct
 {

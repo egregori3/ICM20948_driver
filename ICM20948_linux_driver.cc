@@ -18,7 +18,7 @@
 #include "ICM20948_registers.h"
 #include "ICM20948_linux_driver.h"
 
-#define ONHARDWARE  0
+#define ONHARDWARE  1
 
 using namespace std;
 
@@ -33,7 +33,7 @@ uint8_t ICM20948LinuxDriver::ReadRegister(uint8_t addr)
         perror("I2C Read operation failed.");
     }
 #endif
-    printf("READ -> addr: %4x\n", addr);
+    printf("READ -> addr: %2x\n", addr);
     return (uint8_t)data;
 }
 
@@ -51,7 +51,7 @@ int ICM20948LinuxDriver::WriteRegister(WRITE &data)
         perror("I2C Write Operation failed.");
     }
 #endif
-    printf("WRITE -> addr: %4x, data: %2x\n", data.addr, data.data);
+    printf("WRITE -> addr: %2x, data: %2x\n", data.addr, data.data);
     return ret_val;
 }
 
@@ -72,7 +72,7 @@ int ICM20948LinuxDriver::WriteRegisters(vector<WRITE> registers)
             WriteRegister(registers[i]);
         else
         {
-            switch(registers[i].addr & ~NONI2C)
+            switch(registers[i].addr)
             {
                 case SLEEP:
                     printf("SLEEP -> %d\n", registers[i].data);

@@ -1,5 +1,10 @@
 #ifndef ICM20948_REGISTERS
 #define ICM20948_REGISTERS
+
+#include <stdio.h>  // printf
+#include <cstdint>  // uint8_t
+#include "UserSpaceI2C_driver.h"
+
 // ICM20948 registers
 //
 // I (Eric Gregori) copied these register definitions from Sparkfun.
@@ -177,22 +182,11 @@
 #define    M_REG_TS1                           0x33
 #define    M_REG_TS2                           0x34
 
-// Data Structures
-typedef struct
-{
-    uint8_t addr;
-    uint8_t data;
-}   WRITE;
-
 // Bank switching sequences
 #define    SET_BANK_0_WRITE   {REG_BANK_SEL, 0x00}
 #define    SET_BANK_1_WRITE   {REG_BANK_SEL, 0x10}
 #define    SET_BANK_2_WRITE   {REG_BANK_SEL, 0x20}
 #define    SET_BANK_3_WRITE   {REG_BANK_SEL, 0x30}
-
-// Non I2C sequences
-#define    NONI2C             0x80
-#define    SLEEP              (NONI2C+0x01)
 
 // Init sequence
 // are we who we need to be?
@@ -248,10 +242,10 @@ typedef struct
 // After a ICM reset the Mag sensor may stop responding over the I2C master
 // Reset the Master I2C until it responds
 // Set up magnetometer
-mag_reg_ctrl2 = 0x00
-mag_reg_ctrl2 |= AK09916_mode_cont_100hz
-writeMag(AK09916_REG_CNTL2, mag_reg_ctrl2)
-i2cMasterConfigureSlave(0, MAG_AK09916_I2C_ADDR, AK09916_REG_ST1, 9, True, True, False, False, False)
+//mag_reg_ctrl2 = 0x00
+//mag_reg_ctrl2 |= AK09916_mode_cont_100hz
+//writeMag(AK09916_REG_CNTL2, mag_reg_ctrl2)
+//i2cMasterConfigureSlave(0, MAG_AK09916_I2C_ADDR, AK09916_REG_ST1, 9, True, True, False, False, False)
 
 
 // Init Sequence
@@ -282,33 +276,56 @@ typedef struct
     uint16_t    magstat;
 }   DATA;
 
+class ICM20948driver
+{
+    private:
+        UserSpaceI2Cdriver *i2c;
+        int status;
 
-// I am not a fan of macros but this allowed my to contain all the IC specific
-// details in a single file.
-#define GETDATA(x)                                                              \
-    x.id = ReadRegister(AGB0_REG_WHO_AM_I);                                     \
-    x.ax = (((uint16_t)ReadRegister(AGB0_REG_ACCEL_XOUT_H)<<8)+                 \
-            (ReadRegister(AGB0_REG_ACCEL_XOUT_L)));                             \
-    x.ay = (((uint16_t)ReadRegister(AGB0_REG_ACCEL_YOUT_H)<<8)+                 \
-            (ReadRegister(AGB0_REG_ACCEL_YOUT_L)));                             \
-    x.az = (((uint16_t)ReadRegister(AGB0_REG_ACCEL_ZOUT_H)<<8)+                 \
-            (ReadRegister(AGB0_REG_ACCEL_ZOUT_L)));                             \
-    x.gx = (((uint16_t)ReadRegister(AGB0_REG_GYRO_XOUT_H)<<8)+                  \
-            (ReadRegister(AGB0_REG_GYRO_XOUT_L)));                              \
-    x.gy = (((uint16_t)ReadRegister(AGB0_REG_GYRO_YOUT_H)<<8)+                  \
-            (ReadRegister(AGB0_REG_GYRO_YOUT_L)));                              \
-    x.gz = (((uint16_t)ReadRegister(AGB0_REG_GYRO_ZOUT_H)<<8)+                  \
-            (ReadRegister(AGB0_REG_GYRO_ZOUT_L)));                              \
-    x.temp = (((uint16_t)ReadRegister(AGB0_REG_TEMP_OUT_H)<<8)+                 \
-            (ReadRegister(AGB0_REG_TEMP_OUT_L)));                               \
-    x.mx = (((uint16_t)ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_02)<<8)+         \
-            (ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_01)));                     \
-    x.my = (((uint16_t)ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_04)<<8)+         \
-            (ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_03)));                     \
-    x.mz = (((uint16_t)ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_06)<<8)+         \
-            (ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_05)));                     \
-    x.magstat = (((uint16_t)ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_00)<<8)+    \
-                 (ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_08)));                \
+    public:
+        ICM20948driver(UserSpaceI2Cdriver *pi2c)
+        {
+            i2c = pi2c;
+            status = i2c->WriteCommands(INIT_CMD);
+        }
+        int GetStatus() { return status; }
+        int ReadIMU(DATA *x)
+        {
+            x->id = i2c->ReadRegister(AGB0_REG_WHO_AM_I);
+            x->ax = (((uint16_t)i2c->ReadRegister(AGB0_REG_ACCEL_XOUT_H)<<8)+
+                               (i2c->ReadRegister(AGB0_REG_ACCEL_XOUT_L)));
+            x->ay = (((uint16_t)i2c->ReadRegister(AGB0_REG_ACCEL_YOUT_H)<<8)+
+                               (i2c->ReadRegister(AGB0_REG_ACCEL_YOUT_L)));
+            x->az = (((uint16_t)i2c->ReadRegister(AGB0_REG_ACCEL_ZOUT_H)<<8)+
+                               (i2c->ReadRegister(AGB0_REG_ACCEL_ZOUT_L)));
+            x->gx = (((uint16_t)i2c->ReadRegister(AGB0_REG_GYRO_XOUT_H)<<8)+
+                               (i2c->ReadRegister(AGB0_REG_GYRO_XOUT_L)));
+            x->gy = (((uint16_t)i2c->ReadRegister(AGB0_REG_GYRO_YOUT_H)<<8)+
+                               (i2c->ReadRegister(AGB0_REG_GYRO_YOUT_L)));
+            x->gz = (((uint16_t)i2c->ReadRegister(AGB0_REG_GYRO_ZOUT_H)<<8)+
+                               (i2c->ReadRegister(AGB0_REG_GYRO_ZOUT_L)));
+            x->temp = (((uint16_t)i2c->ReadRegister(AGB0_REG_TEMP_OUT_H)<<8)+
+                                 (i2c->ReadRegister(AGB0_REG_TEMP_OUT_L)));
+            x->mx = (((uint16_t)i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_02)<<8)+
+                               (i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_01)));
+            x->my = (((uint16_t)i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_04)<<8)+
+                               (i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_03)));
+            x->mz = (((uint16_t)i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_06)<<8)+
+                               (i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_05)));
+            x->magstat = (((uint16_t)i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_00)<<8)+
+                                    (i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_08)));
+        }
+        void DumpData(DATA *data)
+        {
+            printf("ID: %02x\n", data->id);             
+            printf("Accel: %04x %04x %04x\n", data->ax, data->ay, data->az);
+            printf("Gyro: %04x %04x %04x\n", data->gx, data->gy, data->gz);
+            printf("Mag: %04x %04x %04x\n", data->mx, data->my, data->mz);
+            printf("Status: %04x\n", data->magstat);
+            printf("Temp: %04x\n", data->temp);
+        }
+
+};
 
 
 #endif

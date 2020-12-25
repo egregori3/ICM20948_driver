@@ -52,18 +52,22 @@ The compass is a seperate die connecting to the gyro/Accel via the aux I2C bus.
 > processor to manage the initial configuration of any auxiliary sensors. 
 > The ICM-20948 has an interface bypass multiplexer, which connects the system processor 
 > I2C bus pins 23 and 24 (SCL and SDA) directly to the auxiliary sensor I2C bus pins 7 and 21 (AUX_CL and AUX_DA)
-
+>
 > The ICM-20948 has an auxiliary I2C bus for communicating to external sensors. 
 > This bus has two operating modes:
-> • I2C Master Mode: The ICM-20948 acts as a master to any external sensors connected to the auxiliary I2C bus
+>
+> • I2C Master Mode: The ICM-20948 acts as a master to any external sensors connected to the auxiliary I2C bus.
+>
 > • Pass-Through Mode: The ICM-20948 directly connects the primary and auxiliary I2C buses together, allowing
 > the system processor to directly communicate with any external sensors. 
-
+>
 > Auxiliary I2C Bus Modes of Operation:
+>
 > • I2C Master Mode: Allows the ICM-20948 to directly access the data registers of external sensors. In this
 > mode, the ICM-20948 directly obtains data from auxiliary sensors without intervention from the system
 > applications processor. The I2C Master can be configured to read up to 24 bytes from up to 4 auxiliary
 > sensors. A fifth sensor can be configured to work single byte read/write mode.
+>
 > • Pass-Through Mode: Allows an external system processor to act as master and directly communicate to the
 > external sensors connected to the auxiliary I2C bus pins (AUX_DA and AUX_CL). In this mode, the auxiliary I2C
 > bus control logic of the ICM-20948 is disabled, and the auxiliary I2C pins AUX_CL and AUX_DA (pins 7 and 21)

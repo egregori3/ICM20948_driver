@@ -8,6 +8,8 @@ https://github.com/CoryCline/ICM20948
 
 https://invensense.tdk.com/wp-content/uploads/2016/06/DS-000189-ICM-20948-v1.3.pdf
 
+https://www.y-ic.es/datasheet/78/SMDSW.020-2OZ.pdf
+
 # ICM20948
 
 > The ICM-20948 is a multi-chip module (MCM) consisting of two dies integrated into a single QFN package. One die
@@ -75,5 +77,44 @@ The compass is a seperate die connecting to the gyro/Accel via the aux I2C bus.
 > useful for configuring the external sensors.
 
 
+### Compass Initialization (AK09916)
+	
+https://github.com/sparkfun/Qwiic_9DoF_IMU_ICM20948_Py/blob/master/qwiic_icm20948.py
+
+Use I2C Master Mode
+AGB0_REG_INT_PIN_CONFIG = 0
+* BYPASS_EN[1] = 0 -> Use the I2C master in the ICM to control the compass
+AGB3_REG_I2C_MST_CTRL = ((1<<4)+7)
+* I2C_MST_CLK[3:0] = 0x7 -> 345.60Khz (table 23)
+* I2C_MST_P_NSR[4] = 1 -> There is a stop between reads
+AGB0_REG_USER_CTRL = (1<<5);
+* I2C_MST_EN[5] = 1 -> – Enable the I2C Master I/F module
+		
+After a ICM reset the Mag sensor may stop responding over the I2C master
+Reset the Master I2C until it responds
+
+while (tries):
+	See if we can read the WhoIAm register correctly
+	if (self.magWhoIAm()):
+		break # WIA matched!
+	self.i2cMasterReset() # Otherwise, reset the master I2C and try again
+	--tries
+
+if (tries == maxTries):
+       print("Mag ID fail. Tries: %d\n", tries)
+	return False
 
 
+### Read from Magnetometer
+
+The ICM is the magnetometer's I2C master. We need to access the magnetometer using the
+ICM's I2C master block. 
+i2cMasterSingleR(MAG_AK09916_I2C_ADDR, reg)
+
+
+#Set up magnetometer
+mag_reg_ctrl2 = 0x00
+mag_reg_ctrl2 |= AK09916_mode_cont_100hz
+self.writeMag(AK09916_REG_CNTL2, mag_reg_ctrl2)
+
+return self.i2cMasterConfigureSlave(0, MAG_AK09916_I2C_ADDR, AK09916_REG_ST1, 9, True, True, False, False, False)

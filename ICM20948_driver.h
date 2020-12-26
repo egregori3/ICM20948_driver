@@ -198,6 +198,7 @@
 #define    SW_RESET_WRITES    {SET_BANK_0_WRITE, {AGB0_REG_PWR_MGMT_1, 0x80}}
 // sleep(.05)
 #define    SLEEP_50MS_WRITE   {SLEEP, 50} // 50 ms sleep
+#define    SLEEP_10MS_WRITE   {SLEEP, 10} // 10 ms sleep
 //
 // set sleep mode off
 // sleep(False)
@@ -224,32 +225,13 @@
 // enableDlpfAccel(False)
 // enableDlpfGyro(False)
 
-// startupMagnetometer()
-// i2cMasterPassthrough(False) #Do not connect the SDA/SCL pins to AUX_DA/AUX_CL
-#define    DISABLE_PASSTHROUGH {SET_BANK_0_WRITE, {AGB0_REG_INT_PIN_CONFIG, 0x00}}
-
-// i2cMasterEnable(True)
-// &= ~(0x0F) # clear bits for master clock [3:0]
-// |= (0x07) # set bits for master clock [3:0], 0x07 corresponds to 345.6 kHz, good for up to 400 kHz
-// |= (1<<4) # set bit [4] for NSR (next slave read). 0 = restart between reads. 1 = stop between reads.
-#define    MASTER_CLOCK       (0x07 | (1<<4))
-#define    ENABLE_MASTER      {SET_BANK_3_WRITE, {AGB3_REG_I2C_MST_CTRL, MASTER_CLOCK}}
-
-// Set/clear the I2C_MST_EN bit [5] as needed
-// |= (1<<5) # set bit
-#define    MASTER_ENABLE      {SET_BANK_0_WRITE, {AGB0_REG_USER_CTR, (1<<5)}}
-
-// After a ICM reset the Mag sensor may stop responding over the I2C master
-// Reset the Master I2C until it responds
-// Set up magnetometer
-//mag_reg_ctrl2 = 0x00
-//mag_reg_ctrl2 |= AK09916_mode_cont_100hz
-//writeMag(AK09916_REG_CNTL2, mag_reg_ctrl2)
-//i2cMasterConfigureSlave(0, MAG_AK09916_I2C_ADDR, AK09916_REG_ST1, 9, True, True, False, False, False)
-
+// Compass
+#define    ENABLE_PASSTHROUGH {SET_BANK_0_WRITE, {AGB0_REG_INT_PIN_CONFIG, (1<<1)}}
+#define    RESET_COMPASS {{M_REG_CNTL3, 0x01}, SLEEP_50MS_WRITE}
+#define    START_AK0_READ_CMD {{M_REG_CNTL2, 1}, SLEEP_10MS_WRITE}
 
 // Init Sequence
-#define    INIT_CMD {   SW_RESET_WRITES,    \
+#define    INIT_ICM_CMD {SW_RESET_WRITES,   \
                         {SLEEP_50MS_WRITE}, \
                         SLEEP_OFF_WRITES,   \
                         {SLEEP_50MS_WRITE}, \
@@ -258,7 +240,10 @@
                         SET_MODE_WRITES,    \
                         {SLEEP_50MS_WRITE}, \
                         BYPASS_GYRO_DLPF,   \
+                        ENABLE_PASSTHROUGH  \
                         {SET_BANK_0_WRITE}} \
+
+#define   INIT_AK0_CMD  {RESET_COMPASS}
 
 typedef struct
 {

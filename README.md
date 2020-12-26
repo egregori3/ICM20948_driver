@@ -46,6 +46,28 @@ https://invensense.tdk.com/wp-content/uploads/2016/06/DS-000189-ICM-20948-v1.3.p
 The initialization for the Accel and Gyro is very simple. Set a reset bit and wait.
 The IMU defaults to to the accel and Gyro running in a continuous mode.
 
+```
+#define    SW_RESET_WRITES    {SET_BANK_0_WRITE, {AGB0_REG_PWR_MGMT_1, 0x80}}
+#define    SLEEP_50MS_WRITE   {SLEEP, 50} // 50 ms sleep
+#define    SLEEP_OFF_WRITES   {SET_BANK_0_WRITE, {AGB0_REG_PWR_MGMT_1, 0x00}}
+#define    LOW_POWER_WRITES   {SET_BANK_0_WRITE, {AGB0_REG_PWR_MGMT_1, 0x00}}
+#define    SET_MODE_WRITES    {SET_BANK_0_WRITE, {AGB0_REG_LP_CONFIG, 0x00}}
+#define    BYPASS_GYRO_DLPF   {SET_BANK_2_WRITE, {AGB2_REG_GYRO_CONFIG_1, 0x00}}
+
+// Init Sequence
+#define    INIT_CMD {   SW_RESET_WRITES,    \
+                        {SLEEP_50MS_WRITE}, \
+                        SLEEP_OFF_WRITES,   \
+                        {SLEEP_50MS_WRITE}, \
+                        LOW_POWER_WRITES,   \
+                        {SLEEP_50MS_WRITE}, \
+                        SET_MODE_WRITES,    \
+                        {SLEEP_50MS_WRITE}, \
+                        BYPASS_GYRO_DLPF,   \
+                        {SET_BANK_0_WRITE}} \
+
+```
+
 ## Compass
 The compass is a seperate die connecting to the gyro/Accel via the aux I2C bus.
 
@@ -78,13 +100,29 @@ The compass is a seperate die connecting to the gyro/Accel via the aux I2C bus.
 
 
 ### Compass Initialization (AK09916)
-	
-Set the ICM to pass-through mode. The compass is I2C address 0x0C. 
+
+Set the ICM to pass-through mode.
+
+```
+When asserted, the I2C_MASTER interface pins (ES_CL and ES_DA) will go into
+‘bypass mode’ when the I2C master interface is disabled
+#define    ENABLE_PASSTHROUGH {SET_BANK_0_WRITE, {AGB0_REG_INT_PIN_CONFIG, (1<<1)}}
+```
+
+The compass is I2C address 0x0C. 
+```
+set address 0x0C
 init
-0x32 = 1 (reset)
-wait for 0x32 == 0
+M_REG_CNTL3(0x32) = 1 (reset)
+wait for M_REG_CNTL3(0x32) == 0
 
 read
-0x31 = 1 (single measurment start)
-wait for 0x10 == 1
-read 0x11 to 0x16 
+M_REG_CNTL2(0x31) = 1 (single measurment start)
+wait for M_REG_ST1(0x10) == 1
+read M_REG_HXL                           
+read M_REG_HXH                           
+read M_REG_HYL                           
+read M_REG_HYH                           
+read M_REG_HZL                           
+read M_REG_HZH                           
+```

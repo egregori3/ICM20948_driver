@@ -228,7 +228,7 @@
 // Compass
 #define    ENABLE_PASSTHROUGH {SET_BANK_0_WRITE, {AGB0_REG_INT_PIN_CONFIG, (1<<1)}}
 #define    RESET_COMPASS {{M_REG_CNTL3, 0x01}, SLEEP_50MS_WRITE}
-#define    START_AK0_READ_CMD {{M_REG_CNTL2, 1}, SLEEP_10MS_WRITE}
+#define    START_AK0_READ_CMD {{{M_REG_CNTL2, 1}, SLEEP_10MS_WRITE}}
 
 // Init Sequence
 #define    INIT_ICM_CMD {SW_RESET_WRITES,   \
@@ -240,7 +240,7 @@
                         SET_MODE_WRITES,    \
                         {SLEEP_50MS_WRITE}, \
                         BYPASS_GYRO_DLPF,   \
-                        ENABLE_PASSTHROUGH  \
+                        ENABLE_PASSTHROUGH, \
                         {SET_BANK_0_WRITE}} \
 
 #define   INIT_AK0_CMD  {RESET_COMPASS}
@@ -254,12 +254,17 @@ typedef struct
     uint16_t    gx;
     uint16_t    gy;
     uint16_t    gz;
+    uint16_t    temp;
+}   IMUDATA;
+
+typedef struct
+{
+    uint8_t     id;     // ID BYTE
     uint16_t    mx;
     uint16_t    my;
     uint16_t    mz;
-    uint16_t    temp;
     uint16_t    magstat;
-}   DATA;
+}   MAGDATA;
 
 class ICM20948driver
 {
@@ -271,45 +276,51 @@ class ICM20948driver
         ICM20948driver(UserSpaceI2Cdriver *pi2c)
         {
             i2c = pi2c;
-            status = i2c->WriteCommands(INIT_CMD);
+            status = i2c->WriteCommands(INIT_ICM_CMD);
         }
         int GetStatus() { return status; }
-        int ReadIMU(DATA *x)
+        int GetIMUVersion(void)
         {
-            x->id = i2c->ReadRegister(AGB0_REG_WHO_AM_I);
-            x->ax = (((uint16_t)i2c->ReadRegister(AGB0_REG_ACCEL_XOUT_H)<<8)+
-                               (i2c->ReadRegister(AGB0_REG_ACCEL_XOUT_L)));
-            x->ay = (((uint16_t)i2c->ReadRegister(AGB0_REG_ACCEL_YOUT_H)<<8)+
-                               (i2c->ReadRegister(AGB0_REG_ACCEL_YOUT_L)));
-            x->az = (((uint16_t)i2c->ReadRegister(AGB0_REG_ACCEL_ZOUT_H)<<8)+
-                               (i2c->ReadRegister(AGB0_REG_ACCEL_ZOUT_L)));
-            x->gx = (((uint16_t)i2c->ReadRegister(AGB0_REG_GYRO_XOUT_H)<<8)+
-                               (i2c->ReadRegister(AGB0_REG_GYRO_XOUT_L)));
-            x->gy = (((uint16_t)i2c->ReadRegister(AGB0_REG_GYRO_YOUT_H)<<8)+
-                               (i2c->ReadRegister(AGB0_REG_GYRO_YOUT_L)));
-            x->gz = (((uint16_t)i2c->ReadRegister(AGB0_REG_GYRO_ZOUT_H)<<8)+
-                               (i2c->ReadRegister(AGB0_REG_GYRO_ZOUT_L)));
-            x->temp = (((uint16_t)i2c->ReadRegister(AGB0_REG_TEMP_OUT_H)<<8)+
-                                 (i2c->ReadRegister(AGB0_REG_TEMP_OUT_L)));
-            x->mx = (((uint16_t)i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_02)<<8)+
-                               (i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_01)));
-            x->my = (((uint16_t)i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_04)<<8)+
-                               (i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_03)));
-            x->mz = (((uint16_t)i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_06)<<8)+
-                               (i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_05)));
-            x->magstat = (((uint16_t)i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_00)<<8)+
-                                    (i2c->ReadRegister(AGB0_REG_EXT_SLV_SENS_DATA_08)));
+            return(i2c->ReadByteData(AGB0_REG_WHO_AM_I));
         }
-        void DumpData(DATA *data)
+        int GetMAGVersion(void)
         {
-            printf("ID: %02x\n", data->id);             
-            printf("Accel: %04x %04x %04x\n", data->ax, data->ay, data->az);
-            printf("Gyro: %04x %04x %04x\n", data->gx, data->gy, data->gz);
-            printf("Mag: %04x %04x %04x\n", data->mx, data->my, data->mz);
-            printf("Status: %04x\n", data->magstat);
-            printf("Temp: %04x\n", data->temp);
+            return(i2c->ReadByteData(M_REG_WIA2));
         }
+        int ReadIMU(IMUDATA *x)
+        {
+            x->id = i2c->ReadByteData(AGB0_REG_WHO_AM_I);
+            x->ax = (((uint16_t)i2c->ReadByteData(AGB0_REG_ACCEL_XOUT_H)<<8)+
+                               (i2c->ReadByteData(AGB0_REG_ACCEL_XOUT_L)));
+            x->ay = (((uint16_t)i2c->ReadByteData(AGB0_REG_ACCEL_YOUT_H)<<8)+
+                               (i2c->ReadByteData(AGB0_REG_ACCEL_YOUT_L)));
+            x->az = (((uint16_t)i2c->ReadByteData(AGB0_REG_ACCEL_ZOUT_H)<<8)+
+                               (i2c->ReadByteData(AGB0_REG_ACCEL_ZOUT_L)));
+            x->gx = (((uint16_t)i2c->ReadByteData(AGB0_REG_GYRO_XOUT_H)<<8)+
+                               (i2c->ReadByteData(AGB0_REG_GYRO_XOUT_L)));
+            x->gy = (((uint16_t)i2c->ReadByteData(AGB0_REG_GYRO_YOUT_H)<<8)+
+                               (i2c->ReadByteData(AGB0_REG_GYRO_YOUT_L)));
+            x->gz = (((uint16_t)i2c->ReadByteData(AGB0_REG_GYRO_ZOUT_H)<<8)+
+                               (i2c->ReadByteData(AGB0_REG_GYRO_ZOUT_L)));
+            x->temp = (((uint16_t)i2c->ReadByteData(AGB0_REG_TEMP_OUT_H)<<8)+
+                                 (i2c->ReadByteData(AGB0_REG_TEMP_OUT_L)));
+            return 0;
+        }
+        int ReadMAG(MAGDATA *x)
+        {
+            status = i2c->WriteCommands(START_AK0_READ_CMD);
+            x->id = i2c->ReadByteData(M_REG_WIA2);
+            x->mx = (((uint16_t)i2c->ReadByteData(M_REG_HXH)<<8)+
+                               (i2c->ReadByteData(M_REG_HXL)));
+            x->my = (((uint16_t)i2c->ReadByteData(M_REG_HYH)<<8)+
+                               (i2c->ReadByteData(M_REG_HYL)));
+            x->mz = (((uint16_t)i2c->ReadByteData(M_REG_HZH)<<8)+
+                               (i2c->ReadByteData(M_REG_HZL)));
+            x->magstat = (((uint16_t)i2c->ReadByteData(M_REG_ST1)<<8)+
+                                    (i2c->ReadByteData(M_REG_ST2)));
 
+            return 0;
+        }
 };
 
 
